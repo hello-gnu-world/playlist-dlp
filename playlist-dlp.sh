@@ -4,6 +4,66 @@
 dir="$(pwd)"
 #Stores video quality for downloaded video
 quality="720";
+
+#Defines function that requires the user to input a yes or no answer
+yesORno(){
+while [[ "${answer,,}" != "no" ]] && [[  "${answer,,}" != "yes" ]] ;
+do 
+        read -r answer
+        if [ "$(echo "$answer" | cut -b1)" == 'n' ];
+        then
+                answer='no';
+        else
+                answer='yes';
+        fi
+        if [[ "${answer,,}" != "no" ]] && [[  "${answer,,}" != "yes" ]];
+        then
+                echo -e "\nPlease enter 'yes' or 'no'."
+        fi
+done
+}
+
+install_dep(){
+error="$?";
+if [ "$error" == '1' ];
+then
+	echo "Package "$1" is required for this script to work. Would you like to download it?"
+	yesORno
+	if [ "$answer" == 'yes' ];
+	then
+		echo "Please input sudo password to update system and install packages."
+		case "$2" in
+			arch-based)
+				sudo pacman -Syyu "$1";
+				;;
+			debian-based)
+				sudo apt update; sudo apt upgrade; sudo apt install "$1";
+				;;
+		esac
+	else
+		echo "Required packages not installed. Exitting";
+		exit;
+	fi	
+fi
+}
+
+#Checks user's distribution type and whether or not they have require packages to run this script
+packageManager="$(apropos "package manager" | grep -o pacman | head -n1)";
+#Asks the user if they desire install required packages, and installs them if yes
+case "$packageManager" in
+	pacman)
+		pacman -Qi yt-dlp > /dev/null 2>&1;
+		install_dep 'yt-dlp' 'arch-based';
+		;;
+	dpkg)
+		dpkg -l yt-dlp > /dev/null 2>&1
+		install_dep 'yt-dlp' 'debian-based';
+		;;
+	*)
+		echo "This script currently only supports checking whether or not the propper package(s) are installed on debian and arch based systems. Ensure the proper packages are installed or else this script will not work!"
+		;;
+esac
+
 while getopts 'd:p:n:q:h' OPTION; do
 	case "$OPTION" in
 		d)	
